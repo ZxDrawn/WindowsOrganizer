@@ -1,0 +1,6 @@
+anthropic>=1.8.0
+watchdog
+pystray
+pillow
+pypdf
+keyring
