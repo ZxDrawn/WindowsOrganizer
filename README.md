@@ -1,4 +1,4 @@
-# WindowsOrganizer
+﻿# WindowsOrganizer
 
 > Um assistente que roda em segundo plano no Windows, organiza sua pasta **Downloads** sozinho e **lembra de tudo o que passou por ela**.
 
@@ -231,7 +231,7 @@ A ideia é que o WindowsOrganizer deixe de ser só um "organizador de pastas" e 
 - [ ] **IA local e gratuita (modo híbrido):** usar um modelo rodando no próprio PC (via Ollama) para os casos simples e chamar o Claude só quando o modelo local não tiver certeza. Menos custo e mais privacidade.
 - [x] **Leitura de texto direto do PDF:** folhas exportadas de sistema já têm texto e não precisam de "visão", o que deixa tudo mais rápido e barato. PDFs escaneados continuam indo como imagem.
 - [ ] **Executável (.exe) com instalador:** instalar sem precisar do Python.
-- [ ] **Testes automatizados** das regras e do motor.
+- [x] **Testes automatizados** das regras e do motor (`pip install -r requirements-dev.txt` e `python -m pytest`).
 
 ### 💬 Perguntar ao histórico
 - [ ] Busca em linguagem natural: *"quais atestados do João chegaram em agosto?"*, *"o que foi apagado semana passada?"*, *"já recebi a folha de ponto da Maria de setembro?"*.
