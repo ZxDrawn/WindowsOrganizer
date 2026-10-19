@@ -4,6 +4,8 @@ import io
 import json
 import logging
 import re
+import urllib.error
+import urllib.request
 from datetime import date
 from pathlib import Path
 
@@ -23,6 +25,7 @@ MAX_IMAGEM_BYTES = 4_500_000
 MAX_LADO_IMAGEM = 2400
 MIN_CHARS_POR_PAGINA = 100
 MAX_CHARS_TEXTO_PDF = 60_000
+MAX_PAGINAS_ESCANEADAS = 3   # IA local: páginas desenhadas como imagem (mais páginas = mais lento)
 
 
 class AIError(Exception):
@@ -110,6 +113,78 @@ def _file_block(path: Path) -> dict:
 
 
 def _call(system: str, content: list[dict], schema: dict) -> dict:
+    """Envia ao motor escolhido nas configurações: IA local (padrão, grátis) ou Claude (pago)."""
+    if load_settings()["motor"] == "claude":
+        return _call_claude(system, content, schema)
+    return _call_local(system, content, schema)
+
+
+# ---------------------------------------------------------------- IA local (Ollama)
+
+def _paginas_como_imagens(pdf_b64: str, max_paginas: int) -> list[str]:
+    """Desenha as primeiras páginas de um PDF escaneado como imagens (PNG em base64)."""
+    import fitz  # PyMuPDF
+    doc = fitz.open(stream=base64.b64decode(pdf_b64), filetype="pdf")
+    imagens = []
+    for page in list(doc)[:max_paginas]:
+        png = page.get_pixmap(dpi=130).tobytes("png")
+        imagens.append(base64.standard_b64encode(png).decode())
+    return imagens
+
+
+def _para_ollama(content: list[dict]) -> tuple[str, list[str]]:
+    """Converte os blocos no formato do Claude em (texto, imagens) para o Ollama."""
+    textos, imagens = [], []
+    for bloco in content:
+        if bloco["type"] == "text":
+            textos.append(bloco["text"])
+        elif bloco["type"] == "image":
+            imagens.append(bloco["source"]["data"])
+        elif bloco["type"] == "document":
+            imagens += _paginas_como_imagens(bloco["source"]["data"], MAX_PAGINAS_ESCANEADAS)
+    return "\n\n".join(textos), imagens
+
+
+def _call_local(system: str, content: list[dict], schema: dict) -> dict:
+    settings = load_settings()
+    texto, imagens = _para_ollama(content)
+    mensagem = {"role": "user", "content": texto}
+    if imagens:
+        mensagem["images"] = imagens
+    corpo = json.dumps({
+        "model": settings["modelo_local"],
+        "stream": False,
+        "think": False,
+        "format": schema,
+        "options": {"temperature": 0, "num_ctx": settings["contexto_local"]},
+        "messages": [{"role": "system", "content": system}, mensagem],
+    }).encode()
+    pedido = urllib.request.Request(settings["url_ollama"].rstrip("/") + "/api/chat", data=corpo,
+                                    headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(pedido, timeout=900) as resp:
+            resposta = json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        detalhe = e.read().decode(errors="replace")[:300]
+        if e.code == 404:
+            raise AIError(f"Modelo '{settings['modelo_local']}' não instalado no Ollama "
+                          f"(rode: ollama pull {settings['modelo_local']}).") from e
+        raise AIError(f"Erro do Ollama ({e.code}): {detalhe}") from e
+    except (urllib.error.URLError, ConnectionError, TimeoutError) as e:
+        raise AIError("Não consegui falar com o Ollama. Ele está aberto no computador?") from e
+
+    texto_resposta = (resposta.get("message") or {}).get("content", "").strip()
+    if not texto_resposta:
+        raise AIError("A IA local não devolveu resposta.")
+    try:
+        return json.loads(texto_resposta)
+    except json.JSONDecodeError as e:
+        raise AIError("A IA local devolveu uma resposta fora do formato esperado.") from e
+
+
+# ---------------------------------------------------------------- Claude (API paga)
+
+def _call_claude(system: str, content: list[dict], schema: dict) -> dict:
     settings = load_settings()
     modelo = settings["modelo"]
     extra = {}

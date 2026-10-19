@@ -228,7 +228,7 @@ WindowsOrganizer/
 A ideia é que o WindowsOrganizer deixe de ser só um "organizador de pastas" e vire um **assistente que conhece seus documentos**.
 
 ### 🔜 Próximos passos
-- [ ] **IA local e gratuita (modo híbrido):** usar um modelo rodando no próprio PC (via Ollama) para os casos simples e chamar o Claude só quando o modelo local não tiver certeza. Menos custo e mais privacidade.
+- [~] **IA local e gratuita (modo híbrido):** *a IA local (Ollama, modelo `qwen3-vl:8b`) já é o motor padrão (`"motor": "local"` em config.json; use `"claude"` para a API paga). Falta o modo híbrido e a otimização de velocidade.* Ideia original: usar um modelo rodando no próprio PC (via Ollama) para os casos simples e chamar o Claude só quando o modelo local não tiver certeza. Menos custo e mais privacidade.
 - [x] **Leitura de texto direto do PDF:** folhas exportadas de sistema já têm texto e não precisam de "visão", o que deixa tudo mais rápido e barato. PDFs escaneados continuam indo como imagem.
 - [ ] **Executável (.exe) com instalador:** instalar sem precisar do Python.
 - [x] **Testes automatizados** das regras e do motor (`pip install -r requirements-dev.txt` e `python -m pytest`).

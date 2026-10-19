@@ -3,4 +3,5 @@ watchdog
 pystray
 pillow
 pypdf>=4.0.0
+pymupdf
 keyring

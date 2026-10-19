@@ -15,6 +15,12 @@ LOG_PATH = DATA_DIR / "app.log"
 
 DEFAULT_SETTINGS = {
     "pasta_monitorada": str(Path.home() / "Downloads"),
+    # "local" usa o Ollama no próprio PC (grátis); "claude" usa a API paga da Anthropic.
+    "motor": "local",
+    "modelo_local": "qwen3-vl:8b",
+    "url_ollama": "http://localhost:11434",
+    # Tamanho da "memória de trabalho" da IA local. Maior lê textos mais longos, mas usa mais da placa de vídeo.
+    "contexto_local": 6144,
     "modelo": "claude-opus-5",
     # Arquivos que a IA não reconhece (ou reconhece com pouca confiança) vão para cá.
     "pasta_revisar": "_A revisar",
