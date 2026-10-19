@@ -229,7 +229,7 @@ A ideia é que o WindowsOrganizer deixe de ser só um "organizador de pastas" e 
 
 ### 🔜 Próximos passos
 - [ ] **IA local e gratuita (modo híbrido):** usar um modelo rodando no próprio PC (via Ollama) para os casos simples e chamar o Claude só quando o modelo local não tiver certeza. Menos custo e mais privacidade.
-- [ ] **Leitura de texto direto do PDF:** folhas exportadas de sistema já têm texto e não precisam de "visão", o que deixa tudo mais rápido e barato.
+- [x] **Leitura de texto direto do PDF:** folhas exportadas de sistema já têm texto e não precisam de "visão", o que deixa tudo mais rápido e barato. PDFs escaneados continuam indo como imagem.
 - [ ] **Executável (.exe) com instalador:** instalar sem precisar do Python.
 - [ ] **Testes automatizados** das regras e do motor.
 

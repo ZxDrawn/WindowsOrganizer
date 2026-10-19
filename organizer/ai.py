@@ -3,6 +3,7 @@ import base64
 import io
 import json
 import logging
+import re
 from datetime import date
 from pathlib import Path
 
@@ -20,6 +21,8 @@ KEYRING_USER = "anthropic_api_key"
 MODELOS_COM_FALLBACK = {"claude-opus-5", "claude-fable-5-1"}
 MAX_IMAGEM_BYTES = 4_500_000
 MAX_LADO_IMAGEM = 2400
+MIN_CHARS_POR_PAGINA = 100
+MAX_CHARS_TEXTO_PDF = 60_000
 
 
 class AIError(Exception):
@@ -48,6 +51,27 @@ def _client() -> anthropic.Anthropic:
 
 # ---------------------------------------------------------------- arquivo -> bloco de conteúdo
 
+def _texto_do_pdf(reader: PdfReader, max_paginas: int) -> str | None:
+    """Texto das primeiras páginas, ou None se o PDF não tem texto suficiente (escaneado).
+
+    PDFs exportados de sistemas já trazem o texto; assim dispensamos a visão, que é mais lenta e cara.
+    """
+    paginas = []
+    for page in reader.pages[:max_paginas]:
+        try:
+            bruto = page.extract_text(extraction_mode="layout")
+            # O modo layout enche de espaços e linhas em branco: compacta para gastar menos tokens.
+            linhas = (re.sub(r"[ \t]{3,}", "  ", ln).strip() for ln in bruto.splitlines())
+            paginas.append("\n".join(ln for ln in linhas if ln))
+        except Exception:
+            paginas.append("")
+    texto = "\n\n".join(f"--- Página {i} ---\n{p}" for i, p in enumerate(paginas, 1) if p)
+    # Poucos caracteres por página indicam PDF escaneado (imagem): cai para a leitura por visão.
+    if sum(len(p) for p in paginas) < MIN_CHARS_POR_PAGINA * max(len(paginas), 1):
+        return None
+    return texto[:MAX_CHARS_TEXTO_PDF]
+
+
 def _file_block(path: Path) -> dict:
     ext = path.suffix.lower()
     data = path.read_bytes()
@@ -56,6 +80,9 @@ def _file_block(path: Path) -> dict:
         max_paginas = load_settings()["max_paginas_pdf"]
         try:
             reader = PdfReader(io.BytesIO(data))
+            texto = _texto_do_pdf(reader, max_paginas)
+            if texto:
+                return {"type": "text", "text": f"Conteúdo do PDF (texto extraído):\n\n{texto}"}
             if len(reader.pages) > max_paginas:
                 writer = PdfWriter()
                 for page in reader.pages[:max_paginas]:
